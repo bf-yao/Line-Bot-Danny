@@ -127,7 +127,10 @@ def callback():
 
 @line_handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event: MessageEvent):
+    session_id = get_session_id(event)
     text = (event.message.text or "").strip()
+
+    print("DEBUG memory:", conversations.get(session_id, []))  # 🐞 查看記憶
 
     # 群組/多人聊才需要觸發詞；私聊不需要
     src_type = getattr(event.source, "type", "user")
