@@ -87,9 +87,14 @@ def gemini_reply(session_id: str, user_text: str) -> str:
         {"role": "user", "content": user_text}
     ]
 
+    # 把 messages 轉成純文字對話格式
+    prompt = "\n".join([f"{m['role']}: {m['content']}" for m in messages])
+
     try:
         model = genai.GenerativeModel(MODEL_NAME)
-        resp = model.generate_content(messages) # 把對話訊息丟給 Gemini
+        resp = model.generate_content(prompt) # 把對話訊息丟給 Gemini
+        print("DEBUG resp:", resp)  # 先看看回傳內容
+
         ai_msg = (getattr(resp, "text", None) or "嗯…剛剛走神了 zzz").strip() # 取出模型的回覆文字
 
         # 更新對話歷史，限制最多 20 條
