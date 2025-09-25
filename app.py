@@ -93,7 +93,7 @@ def gemini_reply(session_id: str, user_text: str) -> str:
     try:
         model = genai.GenerativeModel(MODEL_NAME)
         resp = model.generate_content(prompt) # 把對話訊息丟給 Gemini
-        print("DEBUG resp:", resp)  # 先看看回傳內容
+        print("DEBUG resp:", resp)  # 看回傳內容
 
         ai_msg = (getattr(resp, "text", None) or "嗯…剛剛走神了 zzz").strip() # 取出模型的回覆文字
 
@@ -130,7 +130,8 @@ def handle_message(event: MessageEvent):
     session_id = get_session_id(event)
     text = (event.message.text or "").strip()
 
-    print("DEBUG memory:", conversations.get(session_id, []))  # 🐞 查看記憶
+    print("session id:", session_id)  # 查看session
+    print("DEBUG memory:", conversations.get(session_id, []))  # 查看記憶
 
     # 群組/多人聊才需要觸發詞；私聊不需要
     src_type = getattr(event.source, "type", "user")
