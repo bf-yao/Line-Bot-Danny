@@ -65,13 +65,50 @@ TRIGGER = "@danny"  # 觸發詞
 
 app = Flask(__name__)
 
-def gemini_reply(text: str) -> str:
+# ===== In-memory 對話歷史 =====
+conversations = {}  # key: user_id/group_id, value: list of messages
+
+# session
+def get_session_id(event):
+    """依來源決定 session key"""
+    if event.source.type == "user":
+        return event.source.user_id
+    elif event.source.type == "group":
+        return event.source.group_id
+    elif event.source.type == "room":
+        return event.source.room_id
+    return "unknown"
+
+def gemini_reply(session_id: str, user_text: str) -> str:
+    history = conversations.get(session_id, []) # 取得該使用者的對話歷史
+
+    # 建立完整對話：system + history + 本次
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}] + history + [
+        {"role": "user", "content": user_text}
+    ]
+
     try:
-        model = genai.GenerativeModel(MODEL_NAME, system_instruction=SYSTEM_PROMPT)
-        r = model.generate_content(text)
-        return (getattr(r, "text", None) or "我在這裡 (˶˙ᵕ˙˶)").strip()
+        model = genai.GenerativeModel(MODEL_NAME)
+        resp = model.generate_content(messages) # 把對話訊息丟給 Gemini
+        ai_msg = (getattr(resp, "text", None) or "嗯…剛剛走神了 zzz").strip() # 取出模型的回覆文字
+
+        # 更新對話歷史，限制最多 20 條
+        history.append({"role": "user", "content": user_text}) # 把使用者訊息存到歷史
+        history.append({"role": "assistant", "content": ai_msg}) # 把 AI 回覆存到歷史
+        if len(history) > 20:
+            history = history[-20:] # 只保留 history 最後 20 個元素
+        conversations[session_id] = history # 更新全域的 conversations
+
+        return ai_msg
     except Exception:
         return "我剛剛打瞌睡了…再跟我說一次吧！(｡•ᴗ-)✧"
+    
+    # try:
+    #     model = genai.GenerativeModel(MODEL_NAME, system_instruction=SYSTEM_PROMPT)
+    #     r = model.generate_content(text)
+    #     return (getattr(r, "text", None) or "我在這裡 (˶˙ᵕ˙˶)").strip()
+    # except Exception:
+    #     return "我剛剛打瞌睡了…再跟我說一次吧！(｡•ᴗ-)✧"
 
 @app.route("/callback", methods=["POST"])
 def callback():
@@ -95,7 +132,8 @@ def handle_message(event: MessageEvent):
         # 把觸發詞移除再丟給模型
         text = text.replace(TRIGGER, "").replace(TRIGGER.lower(), "").strip() or "嗨～"
 
-    reply = gemini_reply(text)
+    session_id = get_session_id(event) # 取得 session
+    reply = gemini_reply(session_id, text)
 
     with ApiClient(configuration) as api_client:
         MessagingApi(api_client).reply_message(
