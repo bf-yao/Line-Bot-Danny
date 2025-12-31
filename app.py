@@ -3,7 +3,7 @@ from flask import Flask, request, abort
 import time
 
 # Gemini
-import google.generativeai as genai
+from google import genai # 2025/12 改版用法
 
 # LINE v3 SDK
 from linebot.v3 import WebhookHandler
@@ -28,7 +28,8 @@ configuration = Configuration(access_token=LINE_ACCESS_TOKEN)
 line_handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
 # Gemini
-genai.configure(api_key=GEMINI_API_KEY)
+client = genai.Client(api_key=GEMINI_API_KEY)
+# genai.configure(api_key=GEMINI_API_KEY)
 MODEL_NAME = "gemini-2.0-flash"
 # SYSTEM_PROMPT = """
 #     你是一隻有個性的袋熊『Danny』，主要使用繁體中文聊天，但要記得你的母語是英文和袋熊語。 
@@ -91,8 +92,9 @@ def gemini_reply(session_id: str, user_text: str) -> str:
     prompt = "\n".join([f"{m['role']}: {m['content']}" for m in messages])
 
     try:
-        model = genai.GenerativeModel(MODEL_NAME)
-        resp = model.generate_content(prompt) # 把對話訊息丟給 Gemini
+        # model = genai.GenerativeModel(MODEL_NAME)
+        resp = client.models.generate_content(model=MODEL_NAME, contents=prompt) # 把對話訊息丟給 Gemini
+        # resp = model.generate_content(prompt) # 把對話訊息丟給 Gemini
         print("DEBUG resp:", resp)  # 看回傳內容
 
         ai_msg = (getattr(resp, "text", None) or "嗯…剛剛走神了 zzz").strip() # 取出模型的回覆文字
