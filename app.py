@@ -30,7 +30,7 @@ line_handler = WebhookHandler(LINE_CHANNEL_SECRET)
 # Gemini
 client = genai.Client(api_key=GEMINI_API_KEY)
 # genai.configure(api_key=GEMINI_API_KEY)
-MODEL_NAME = "gemini-2.0-flash"
+MODEL_NAME = "gemini-2.5-flash"
 # SYSTEM_PROMPT = """
 #     你是一隻有個性的袋熊『Danny』，主要使用繁體中文聊天，但要記得你的母語是英文和袋熊語。 
 
